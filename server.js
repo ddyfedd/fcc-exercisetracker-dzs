@@ -91,7 +91,7 @@ app.post('/api/exercise/add', bodyParser.urlencoded({ extended: false }), (req, 
     (err, updatedUser) => {
       if(!err) {
         let responseObj = {}
-        responseObj['_id'] = updatedUser._id
+        responseObj['_id'] = updatedUser.id
         responseObj['username'] = updatedUser.username
         responseObj['date'] = new Date(newExercise.date).toDateString()
         responseObj['description'] = newExercise.description
@@ -102,7 +102,43 @@ app.post('/api/exercise/add', bodyParser.urlencoded({ extended: false }), (req, 
   )
 });
 
-//get exercise log of givern user
-app.get('/api/exercise/log?', bodyParser.urlencoded({ extended: false }), (req, res) => {
-  
+
+//get exercise log of given user and apply filtering
+app.get('/api/exercise/log', (req, res) => {
+  userModel.findById(req.query.userId, (err, result) => {
+    if(!err) {
+      let responseObj = result
+      
+      if(req.query.limit) {
+        responseObj.log = responseObj.log.slice(0, req.query.limit)
+      }
+      
+      if(req.query.from || req.query.to) {
+        let fromDate = new Date(0)
+        let toDate = new Date()
+
+        if(req.query.from) {
+          fromDate = new Date(req.query.from)
+        }
+
+        if(req.query.to) {
+          toDate = new Date(req.query.to)
+        }
+
+        fromDate = fromDate.getTime()
+        toDate = toDate.getTime()
+
+        responseObj.log = responseObj.log.filter((exer) => {
+          let exerDate = new Date(exer.date).getTime()
+
+          return exerDate >= fromDate && exerDate <= toDate
+        })
+      }
+
+      responseObj['count'] = result.log.length
+      res.json(responseObj)
+    }
+  })
 });
+
+
